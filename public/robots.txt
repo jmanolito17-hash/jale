@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 Disallow: /api/
-Sitemap: https://jale.onrender.com/sitemap.xml
+Sitemap: https://jale-cm3r.onrender.com/sitemap.xml

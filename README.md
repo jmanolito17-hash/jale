@@ -43,7 +43,7 @@ Sin la clave, la app funciona completa y esos botones no aparecen. Usar la IA **
 1. Entre a [render.com](https://render.com) con **Sign in with GitHub**.
 2. Toque **New → Blueprint** y elija el repositorio `jale`.
 3. Render lee el archivo `render.yaml` y le pide `ANTHROPIC_API_KEY`: déjela vacía o pegue su clave.
-4. Toque **Apply**. En unos 3 minutos la app queda en una dirección como `https://jale.onrender.com`.
+4. Toque **Apply**. En unos 3 minutos la app queda en una dirección como `https://jale-cm3r.onrender.com`.
 
 Cada vez que suba cambios a GitHub, Render la actualiza solo.
 

@@ -639,7 +639,7 @@ function vAcerca() {
 }
 
 /* ---------- Compartir ---------- */
-const URL_PUBLICA = "https://jale.onrender.com/";
+const URL_PUBLICA = "https://jale-cm3r.onrender.com/";
 const MENSAJE_COMPARTIR = "Mira esta página gratis para buscar trabajo en Chicago. Te ayuda a hacer tu currículum en inglés, revisar si un trabajo es real y practicar la entrevista. En español y sin crear cuenta: ";
 function bloqueCompartir() {
   return `
