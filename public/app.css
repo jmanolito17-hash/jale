@@ -1,0 +1,123 @@
+/* Empleo Claro: letra grande, botones grandes, una cosa a la vez. Una columna (máx. 720px). */
+:root {
+  --bg: #F3F5F4; --surface: #FFFFFF; --ink: #15211E; --muted: #4F5F5A; --line: #CFD8D4;
+  --accent: #0D6B57; --accent-ink: #FFFFFF; --accent-soft: #DCEFE8;
+  --gold: #8A5800; --gold-soft: #FBEFD9; --bad: #A8392B; --bad-soft: #F8E3DF;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --radius: 16px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1513; --surface: #18211E; --ink: #E7EEEB; --muted: #A6B5B0; --line: #33433E;
+    --accent: #43B796; --accent-ink: #06231B; --accent-soft: #173A31;
+    --gold: #E2A646; --gold-soft: #3A2C14; --bad: #EE8676; --bad-soft: #3D1F1A;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 19px; line-height: 1.5; }
+.wrap { max-width: 720px; margin: 0 auto; padding: 16px 16px 40px; display: grid; gap: 20px; }
+h1, h2, h3 { font-family: var(--f-display); line-height: 1.15; margin: 0; text-wrap: balance; }
+h1 { font-size: 1.6rem; font-weight: 800; }
+h2 { font-size: 1.55rem; font-weight: 800; }
+h3 { font-size: 1.15rem; font-weight: 700; }
+p { margin: 0; }
+a { color: var(--accent); }
+.muted { color: var(--muted); }
+.small { font-size: 0.92rem; }
+.stack { display: grid; gap: 14px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.between { justify-content: space-between; }
+
+header.top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
+.mark { width: 44px; height: 44px; border-radius: 12px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-family: var(--f-display); font-weight: 800; font-size: 1.15rem; flex: none; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; display: grid; gap: 14px; min-width: 0; }
+.note { background: var(--accent-soft); border-radius: 12px; padding: 14px 16px; }
+.note.gold { background: var(--gold-soft); }
+.note.bad { background: var(--bad-soft); }
+
+/* Botones grandes */
+.btn { font: inherit; font-weight: 700; border-radius: 14px; padding: 14px 20px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; min-height: 58px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-align: center; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.ghost { background: none; border-color: transparent; color: var(--muted); }
+.btn.chico { min-height: 46px; padding: 8px 14px; font-size: 0.95rem; }
+.btn.block { width: 100%; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* Inicio: herramientas como tarjetas grandes */
+.menu { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.tool { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; background: var(--surface); border: 2px solid var(--line); border-radius: var(--radius); padding: 16px; text-decoration: none; color: inherit; min-height: 88px; }
+.tool:hover { border-color: var(--accent); }
+.tool .ico { font-size: 2.1rem; line-height: 1; }
+.tool b { font-family: var(--f-display); font-size: 1.12rem; display: block; }
+.tool span.muted { font-size: 0.9rem; }
+.tool.principal { border-color: var(--accent); background: var(--accent-soft); grid-column: 1 / -1; }
+
+/* Formularios */
+label.campo { display: grid; gap: 6px; font-weight: 700; }
+input[type=text], input[type=tel], input[type=email], input[type=number], textarea, select {
+  font: inherit; font-weight: 400; color: var(--ink); background: var(--surface); border: 2px solid var(--line); border-radius: 12px; padding: 14px; width: 100%; min-height: 56px;
+}
+textarea { min-height: 110px; resize: vertical; }
+.con-mic { display: flex; gap: 8px; align-items: stretch; }
+.con-mic > :first-child { flex: 1; min-width: 0; }
+.mic { flex: none; width: 58px; min-height: 56px; border-radius: 12px; border: 2px solid var(--line); background: var(--surface); font-size: 1.4rem; cursor: pointer; }
+.mic.oyendo { background: var(--bad-soft); border-color: var(--bad); }
+
+/* Opciones para tocar (en vez de escribir) */
+.opciones { display: grid; gap: 10px; }
+.opciones.dos { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.opcion { display: flex; gap: 12px; align-items: center; background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 12px 14px; min-height: 58px; cursor: pointer; font-weight: 400; text-align: left; font: inherit; color: inherit; width: 100%; }
+a.opcion { text-decoration: none; color: var(--ink); }
+.opcion input { width: 26px; height: 26px; flex: none; accent-color: var(--accent); margin: 0; }
+.opcion:has(input:checked), .opcion[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+.opcion .ico { font-size: 1.6rem; }
+
+/* Pasos del currículum */
+.progreso { display: grid; gap: 6px; }
+.barra { height: 10px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.barra i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+.nav-pasos { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; }
+.oir { justify-self: start; }
+
+.item { display: flex; gap: 12px; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 12px; }
+.item:first-child { border-top: 0; padding-top: 0; }
+.pill { display: inline-block; font-size: 0.85rem; font-weight: 700; padding: 3px 10px; border-radius: 99px; background: var(--line); color: var(--ink); }
+.pill.ok { background: var(--accent-soft); color: var(--accent); }
+.pill.wait { background: var(--gold-soft); color: var(--gold); }
+.pill.no { background: var(--bad-soft); color: var(--bad); }
+
+.frase { display: flex; gap: 10px; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 10px; }
+.frase:first-of-type { border-top: 0; padding-top: 0; }
+.frase .en { font-weight: 700; }
+.ia-resp { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg); border-radius: 12px; padding: 14px; }
+.riesgo { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; }
+
+footer.pie { border-top: 1px solid var(--line); padding-top: 16px; display: grid; gap: 10px; }
+
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 14px 20px; border-radius: 12px; font-weight: 700; z-index: 20; max-width: calc(100% - 32px); }
+
+/* Currículum: hoja tamaño carta */
+.cv { background: #fff; color: #111; border: 1px solid var(--line); border-radius: 8px; padding: 32px 36px; font-family: "Segoe UI", Arial, sans-serif; font-size: 15px; line-height: 1.4; }
+.cv h1 { font-family: inherit; font-size: 26px; color: #111; }
+.cv .contacto { color: #333; margin-top: 4px; }
+.cv h2 { font-family: inherit; font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em; color: #0D6B57; border-bottom: 1.5px solid #0D6B57; padding-bottom: 3px; margin: 18px 0 8px; }
+.cv ul { margin: 4px 0 10px; padding-left: 20px; }
+.cv li { margin: 2px 0; }
+.cv .trabajo-cab { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.cv .trabajo-cab b { font-size: 15.5px; }
+@media (max-width: 560px) { .cv { padding: 20px 16px; font-size: 14px; } }
+
+@media print {
+  @page { size: letter; margin: 0.6in; }
+  body { background: #fff; font-size: 12pt; }
+  .no-print, header.top, footer.pie, .toast { display: none !important; }
+  .wrap { max-width: none; padding: 0; }
+  .cv { border: 0; padding: 0; border-radius: 0; }
+}

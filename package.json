@@ -1,0 +1,16 @@
+{
+  "name": "empleo-claro",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Ayuda para buscar trabajo en Chicago: currículum en inglés y español, revisar si un trabajo es real y practicar la entrevista.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "latest"
+  }
+}

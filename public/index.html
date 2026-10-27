@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Empleo Claro</title>
+<meta name="description" content="Haga su currículum en inglés y español, revise si un trabajo es real y prepárese para la entrevista. Gratis, en Chicago.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap">
+<link rel="stylesheet" href="app.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230D6B57'/%3E%3Ctext x='16' y='22' font-size='15' font-family='Arial' font-weight='700' fill='white' text-anchor='middle'%3EEC%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+<main class="wrap">
+  <header class="top">
+    <a class="brand" href="#/">
+      <span class="mark" aria-hidden="true">EC</span>
+      <span><h1>Empleo Claro</h1><span class="muted small">Su ayuda para conseguir trabajo · Chicago</span></span>
+    </a>
+    <a class="btn chico" href="#/" id="btn-inicio" hidden>🏠 Inicio</a>
+  </header>
+  <div id="view" aria-live="polite"><noscript>Esta página necesita JavaScript para funcionar.</noscript></div>
+  <footer class="pie no-print">
+    <p class="small muted">🔒 Sus datos se guardan solo en este aparato. No se mandan a nadie. Si usa una computadora pública, toque <b>Borrar mis datos</b> al terminar.</p>
+    <div class="row">
+      <button class="btn chico" id="guardar-copia">💾 Guardar una copia</button>
+      <label class="btn chico" for="abrir-copia">📂 Abrir mi copia</label>
+      <input type="file" id="abrir-copia" accept=".json,application/json" hidden>
+      <button class="btn chico" id="borrar-todo">🗑️ Borrar mis datos</button>
+    </div>
+  </footer>
+</main>
+<div id="toast" class="toast" hidden></div>
+<script src="datos.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+# Blueprint de Render: crea el servicio web gratis a partir de este repositorio.
+services:
+  - type: web
+    name: empleo-claro
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/estado
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Opcional: clave de la API de Claude para activar la ayuda con IA.
+      # Render la pide al crear el servicio; puede dejarla vacía y agregarla después.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: IA_LIMITE_POR_HORA
+        value: "15"
+      - key: IA_LIMITE_DIARIO
+        value: "300"
