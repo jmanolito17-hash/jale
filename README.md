@@ -1,6 +1,6 @@
-# Empleo Claro
+# Jale ☀️
 
-App gratuita para personas que **saben hacer su trabajo pero no saben hacer un currículum** ni usar mucho la computadora. Hecha para Chicago, en español.
+**¡Hay jale!** App gratuita para personas que **saben hacer su trabajo pero no saben hacer un currículum** ni usar mucho la computadora. Hecha para Chicago, en español.
 
 ## Qué hace
 
@@ -31,19 +31,19 @@ Sin la clave, la app funciona completa y esos botones no aparecen. Usar la IA **
 
 ### 1. Subir el código a GitHub
 1. Entre a [github.com](https://github.com) con su cuenta (o cree una).
-2. Toque **New repository**, llámelo `empleo-claro`, déjelo **sin** README y toque **Create repository**.
+2. Toque **New repository**, llámelo `jale`, déjelo **sin** README y toque **Create repository**.
 3. En una terminal, dentro de esta carpeta:
    ```bash
-   git remote add origin https://github.com/SU-USUARIO/empleo-claro.git
+   git remote add origin https://github.com/jmanolito17-hash/jale.git
    git push -u origin main
    ```
    Se abrirá el navegador para que entre a GitHub.
 
 ### 2. Publicarla en Render
 1. Entre a [render.com](https://render.com) con **Sign in with GitHub**.
-2. Toque **New → Blueprint** y elija el repositorio `empleo-claro`.
+2. Toque **New → Blueprint** y elija el repositorio `jale`.
 3. Render lee el archivo `render.yaml` y le pide `ANTHROPIC_API_KEY`: déjela vacía o pegue su clave.
-4. Toque **Apply**. En unos 3 minutos la app queda en una dirección como `https://empleo-claro.onrender.com`.
+4. Toque **Apply**. En unos 3 minutos la app queda en una dirección como `https://jale.onrender.com`.
 
 Cada vez que suba cambios a GitHub, Render la actualiza solo.
 

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Jale">
+  <rect width="64" height="64" rx="16" fill="#0D6B57"/>
+  <g stroke="#F5B421" stroke-width="3" stroke-linecap="round">
+    <line x1="47" y1="3.5" x2="47" y2="6.5"/>
+    <line x1="58.5" y1="17" x2="61" y2="17"/>
+    <line x1="55.1" y1="8.9" x2="57.2" y2="6.8"/>
+    <line x1="55.1" y1="25.1" x2="57.2" y2="27.2"/>
+  </g>
+  <circle cx="47" cy="17" r="7.5" fill="#F5B421"/>
+  <path d="M16 14H38V40A12.5 12.5 0 0 1 13 40V36.5H21.5V40A4 4 0 0 0 29.5 40V22H16Z" fill="#FFFFFF"/>
+  <rect x="12" y="55" width="40" height="3" rx="1.5" fill="#F5B421" opacity=".9"/>
+</svg>

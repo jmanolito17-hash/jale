@@ -1,5 +1,5 @@
 "use strict";
-// Empleo Claro. Todo vive en el navegador (localStorage); el servidor solo se usa para la ayuda opcional con IA.
+// Jale. Todo vive en el navegador (localStorage); el servidor solo se usa para la ayuda opcional con IA.
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -519,6 +519,9 @@ function vSolicitudes(id) {
         <div class="opciones dos">${ESTADOS.map(e => casilla("s-estado", e[0], esc(e[1]), s.estado === e[0], "radio")).join("")}</div>
         <label class="campo" for="s-dir">Dirección<input type="text" id="s-dir" value="${esc(s.direccion)}" maxlength="150"></label>
         <label class="campo" for="s-tel">Teléfono<input type="tel" id="s-tel" value="${esc(s.telefono)}" maxlength="30"></label>
+        <h3>🤝 ¿Conoce a alguien ahí?</h3>
+        <label class="campo" for="s-conocido">Nombre y teléfono de su conocido (opcional)<input type="text" id="s-conocido" value="${esc(s.conocido || "")}" maxlength="120" placeholder="Juan, turno de noche · (773) 555-0100"></label>
+        <label class="campo" for="s-rrhh">Persona que contrata o de recursos humanos (opcional)<input type="text" id="s-rrhh" value="${esc(s.rrhh || "")}" maxlength="120" placeholder="Nombre, correo o teléfono"></label>
         <label class="campo" for="s-notas">Notas<div class="con-mic"><textarea id="s-notas" maxlength="1000" placeholder="Con quién habló, cuándo volver a llamar…">${esc(s.notas)}</textarea>${mic("s-notas")}</div></label>
         <button type="submit" class="btn primary block">✓ Guardar</button>
         ${id !== "nueva" ? `<button type="button" class="btn ghost" data-borrar-sol="${esc(s.id)}">🗑️ Borrar esta solicitud</button>` : ""}
@@ -533,7 +536,7 @@ function vSolicitudes(id) {
     <a class="btn primary block" href="#/solicitudes/nueva">➕ Anotar una solicitud</a>
     ${lista.length ? `<div class="panel">${lista.map(s => {
       const e = ESTADOS.find(x => x[0] === s.estado) || ESTADOS[0];
-      return `<div class="item"><span><b>${esc(s.empresa)}</b> <span class="pill ${e[2]}">${esc(e[1])}</span><br><span class="small muted">${esc(s.puesto)}${s.fecha ? ` · ${esc(s.fecha)}` : ""}</span></span>
+      return `<div class="item"><span><b>${esc(s.empresa)}</b> <span class="pill ${e[2]}">${esc(e[1])}</span><br><span class="small muted">${esc(s.puesto)}${s.fecha ? ` · ${esc(s.fecha)}` : ""}${s.conocido ? ` · 🤝 ${esc(s.conocido)}` : ""}</span></span>
         <span class="row">${s.telefono ? `<a class="btn chico" href="tel:${esc(s.telefono.replace(/[^\d+]/g, ""))}" aria-label="Llamar">📞</a>` : ""}<a class="btn chico" href="#/solicitudes/${esc(s.id)}">Abrir</a></span></div>`;
     }).join("")}</div>` : `<div class="note gold">Todavía no ha anotado ninguna.</div>`}
     <p class="small muted">Consejo: si mandó su currículum y en una semana no le llaman, llame usted y pregunte. Eso muestra interés.</p>
@@ -579,13 +582,84 @@ function vDerechos() {
   </section>`;
 }
 
+/* ---------- Recomendaciones (conocer a alguien adentro) ---------- */
+function vRecomendacion() {
+  return `
+  <section class="stack">
+    <h2>¿Conoce a alguien ahí?</h2>
+    <p>Muchas empresas contratan primero a quien les recomienda un trabajador de confianza. Para alguien con experiencia, una buena recomendación pesa más que cualquier papel.</p>
+    ${oir("¿Conoce a alguien ahí? Muchas empresas contratan primero a quien les recomienda un trabajador de confianza. Una buena recomendación pesa más que cualquier papel.")}
+    <div class="panel">
+      <h3>Cómo pedir una recomendación</h3>
+      <ol class="paso-lista">
+        <li><span><b>Pregunte a su gente.</b> Familia, vecinos, la iglesia, excompañeros: “¿Dónde trabaja usted? ¿Están contratando?” Muchos trabajos nunca se anuncian.</span></li>
+        <li><span><b>Pida que le recomienden con nombre.</b> “¿Le puede decir a su supervisor o a recursos humanos que yo soy de confianza?”</span></li>
+        <li><span><b>Pida el nombre de quien contrata.</b> Así usted llega preguntando por esa persona, no por “alguien”.</span></li>
+        <li><span><b>Vaya en persona</b> con su currículum impreso y diga quién le manda: “Me manda Juan, del turno de noche.”</span></li>
+        <li><span><b>Dé las gracias</b> a quien le recomendó, le contraten o no.</span></li>
+      </ol>
+      <p class="small muted">Algunas empresas dan un bono al trabajador que recomienda a alguien que se queda. A su conocido también le conviene.</p>
+    </div>
+    <div class="panel">
+      <h3>Para hablar con recursos humanos (Human Resources)</h3>
+      ${[["Mi amigo ___ trabaja aquí y me recomendó.", "My friend ___ works here and recommended me."],
+         ["¿Con quién hablo sobre trabajos de ___?", "Who can I talk to about ___ jobs?"],
+         ["Tengo experiencia y puedo empezar pronto.", "I have experience and I can start soon."],
+         ["¿Me puede dar su nombre y su correo, por favor?", "Can I have your name and email, please?"]]
+        .map(f => `<div class="frase"><span><span class="en" lang="en">${esc(f[1])}</span><br><span class="small muted">${esc(f[0])}</span></span>${oir(f[1].replace(/_+/g, "…"), "en-US", "🔊")}</div>`).join("")}
+    </div>
+    <div class="nav-pasos">
+      <a class="btn" href="#/ingles">🗣️ Más frases</a>
+      <a class="btn primary" href="#/solicitudes/nueva">📋 Anotar a mi conocido</a>
+    </div>
+  </section>`;
+}
+
+/* ---------- Acerca y privacidad ---------- */
+function vAcerca() {
+  return `
+  <section class="stack">
+    <h2>Acerca de Jale</h2>
+    <p><b>Jale</b> es una ayuda gratuita para personas que saben hacer su trabajo pero no tienen práctica con computadoras ni con currículums. Está hecha para Chicago y en español.</p>
+    <div class="panel">
+      <h3>🔒 Su privacidad</h3>
+      <ul class="stack" style="padding-left:20px;margin:0">
+        <li>No hay que crear cuenta.</li>
+        <li>Lo que usted escribe se guarda solo en este aparato. No lo vemos ni lo vendemos.</li>
+        <li>Si usa la ayuda con inteligencia artificial, ese texto se manda para recibir la respuesta. Solo se manda lo que está en esa pantalla.</li>
+        <li>En una computadora pública, toque <b>Borrar mis datos</b> al terminar.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>De dónde sale la información</h3>
+      <p class="small">Los lugares de Chicago, el salario mínimo y los derechos se revisaron en octubre de 2026 en páginas oficiales. Es información general, no asesoría legal. Los horarios y programas cambian: llame antes de ir.</p>
+    </div>
+    ${bloqueCompartir()}
+  </section>`;
+}
+
+/* ---------- Compartir ---------- */
+const URL_PUBLICA = "https://jale.onrender.com/";
+const MENSAJE_COMPARTIR = "Mira esta página gratis para buscar trabajo en Chicago. Te ayuda a hacer tu currículum en inglés, revisar si un trabajo es real y practicar la entrevista. En español y sin crear cuenta: ";
+function bloqueCompartir() {
+  return `
+    <div class="compartir no-print">
+      <p><b>¿Conoce a alguien que busca jale?</b> Compártale esta página.</p>
+      <div class="row">
+        <a class="btn whatsapp" href="https://wa.me/?text=${enc(MENSAJE_COMPARTIR + URL_PUBLICA)}" target="_blank" rel="noopener noreferrer">💬 Mandar por WhatsApp</a>
+        <button type="button" class="btn" id="copiar-enlace">🔗 Copiar el enlace</button>
+      </div>
+    </div>`;
+}
+
 /* ---------- Inicio ---------- */
 function vInicio() {
   const p = S.perfil, tieneCV = p.nombre && p.trabajos.length;
   const tools = [
-    ["#/cv/" + (tieneCV ? "ver" : "1"), "📝", tieneCV ? "Mi currículum" : "Hacer mi currículum", tieneCV ? "Verlo, cambiarlo o imprimirlo" : "Paso a paso, en inglés y español", "principal"],
-    ["#/revisar", "🔍", "¿Es real este trabajo?", "Revise la empresa antes de mandar su currículum"],
+    ["#/cv/" + (tieneCV ? "ver" : "1"), "📝", tieneCV ? "Mi currículum" : "Hacer mi currículum", tieneCV ? "Verlo, cambiarlo o imprimirlo" : "Paso a paso, en inglés y español. Toque lo que sabe hacer.", "principal"],
+    ["#/revisar", "🔍", "¿Es real este trabajo?", "Dirección y teléfono de la empresa antes de mandar sus datos"],
     ["#/buscar", "📍", "Dónde buscar trabajo", "Lugares en Chicago que ayudan gratis"],
+    ["#/recomendacion", "🤝", "¿Conoce a alguien ahí?", "Cómo pedir una recomendación"],
     ["#/entrevista", "🎤", "Practicar la entrevista", "Preguntas comunes y cómo responder"],
     ["#/ingles", "🗣️", "Inglés para el trabajo", "Frases útiles que puede escuchar"],
     ["#/solicitudes", "📋", "Mis solicitudes", `${S.solicitudes.length} anotada${S.solicitudes.length === 1 ? "" : "s"}`],
@@ -593,19 +667,22 @@ function vInicio() {
   ];
   return `
   <section class="stack">
-    <div class="stack" style="gap:8px">
-      <h2>${p.nombre ? `Hola, ${esc(p.nombre.split(" ")[0])} 👋` : "Bienvenido(a) 👋"}</h2>
-      <p>Usted sabe hacer su trabajo. Aquí le ayudamos con lo demás: el currículum, la entrevista y revisar que el trabajo sea real.</p>
-      ${oir("Bienvenido. Usted sabe hacer su trabajo. Aquí le ayudamos con lo demás: el currículum, la entrevista, y revisar que el trabajo sea real. Toque el botón grande para empezar su currículum.")}
+    <div class="hero">
+      ${p.nombre ? `<p class="muted">Hola, ${esc(p.nombre.split(" ")[0])} 👋</p>` : ""}
+      <p class="grito" role="heading" aria-level="2">¡Hay <em>jale</em>!</p>
+      <p class="lead">Usted sabe trabajar. Nosotros le ayudamos con lo demás: el currículum en inglés, la entrevista y revisar que el trabajo sea real.</p>
+      <div class="sellos"><span class="sello">Gratis</span><span class="sello">En español</span><span class="sello">Sin crear cuenta</span><span class="sello">Chicago</span></div>
+      ${oir("¡Hay jale! Usted sabe trabajar. Nosotros le ayudamos con lo demás: el currículum en inglés, la entrevista, y revisar que el trabajo sea real. Es gratis y no tiene que crear cuenta. Toque el botón verde grande para empezar su currículum.")}
     </div>
     <nav class="menu" aria-label="Herramientas">
       ${tools.map(([h, i, t, d, cls]) => `<a class="tool ${cls || ""}" href="${h}"><span class="ico" aria-hidden="true">${i}</span><span><b>${t}</b><span class="muted">${d}</span></span></a>`).join("")}
     </nav>
+    ${bloqueCompartir()}
   </section>`;
 }
 
 /* ---------- Render y eventos ---------- */
-const RUTAS = { "": vInicio, cv: vCV, revisar: vRevisar, buscar: vBuscar, entrevista: vEntrevista, ingles: vIngles, solicitudes: vSolicitudes, derechos: vDerechos };
+const RUTAS = { "": vInicio, cv: vCV, revisar: vRevisar, buscar: vBuscar, entrevista: vEntrevista, ingles: vIngles, solicitudes: vSolicitudes, derechos: vDerechos, recomendacion: vRecomendacion, acerca: vAcerca };
 let rutaAnterior = "";
 function render() {
   const [, base = "", a, b] = location.hash.split("/");
@@ -648,7 +725,7 @@ V.addEventListener("click", async e => {
   }
   if (d.idioma) { S.idiomaCV = d.idioma; guardar(); renderQuieto(); return; }
   if (b.id === "imprimir") {
-    const t = document.title; document.title = `Resume - ${S.perfil.nombre || "Empleo Claro"}`;
+    const t = document.title; document.title = `Resume - ${S.perfil.nombre || "Jale"}`;
     window.print(); document.title = t; return;
   }
   if (b.id === "descargar-cv") {
@@ -664,6 +741,11 @@ V.addEventListener("click", async e => {
       </style></head><body>${cvHTML(S.idiomaCV)}<script>addEventListener("load", () => print());<\/script></body></html>`;
     try { await DESCARGAS.save({ filename: `${nombre}-${S.idiomaCV === "en" ? "Resume" : "Curriculum"}.html`, data: doc }); toast("Listo. Ábralo desde Descargas para imprimir."); }
     catch (err) { if (err?.code !== "declined") toast("No se pudo descargar aquí. Use “Copiar el texto”."); }
+    return;
+  }
+  if (b.id === "copiar-enlace") {
+    try { await navigator.clipboard.writeText(URL_PUBLICA); toast("Enlace copiado. Péguelo en un mensaje."); }
+    catch (err) { toast("El enlace es: " + URL_PUBLICA); }
     return;
   }
   if (b.id === "copiar-cv") {
@@ -745,7 +827,8 @@ V.addEventListener("submit", e => {
     const s = {
       id: f.dataset.id === "nueva" ? "s" + Date.now().toString(36) : f.dataset.id,
       empresa: $("#s-empresa").value.trim(), puesto: $("#s-puesto").value.trim(), fecha: $("#s-fecha").value,
-      estado: marcados("s-estado")[0] || "por-enviar", direccion: $("#s-dir").value.trim(), telefono: $("#s-tel").value.trim(), notas: $("#s-notas").value.trim()
+      estado: marcados("s-estado")[0] || "por-enviar", direccion: $("#s-dir").value.trim(), telefono: $("#s-tel").value.trim(), notas: $("#s-notas").value.trim(),
+      conocido: $("#s-conocido").value.trim(), rrhh: $("#s-rrhh").value.trim()
     };
     if (!s.empresa) { toast("Escriba el nombre de la empresa"); return; }
     const i = S.solicitudes.findIndex(x => x.id === s.id);
@@ -756,7 +839,7 @@ V.addEventListener("submit", e => {
 
 /* ---------- Copia de seguridad y borrar ---------- */
 $("#guardar-copia").addEventListener("click", async () => {
-  const archivo = `empleo-claro-${(S.perfil.nombre || "copia").replace(/[^\w]+/g, "-").toLowerCase()}.json`;
+  const archivo = `jale-${(S.perfil.nombre || "copia").replace(/[^\w]+/g, "-").toLowerCase()}.json`;
   if (EN_VISOR) {
     if (!DESCARGAS) { toast("Aquí no se pueden guardar archivos."); return; }
     try { await DESCARGAS.save({ filename: archivo, data: JSON.stringify(S, null, 2) }); toast("Copia guardada. Guárdela en una memoria USB o mándesela por correo."); }
@@ -778,7 +861,7 @@ $("#abrir-copia").addEventListener("change", async e => {
     if (!d || typeof d.perfil !== "object") throw new Error();
     S = { ...nuevo(), ...d, perfil: { ...nuevo().perfil, ...d.perfil } }; guardar();
     toast("Sus datos se abrieron bien"); location.hash = "#/"; render();
-  } catch (err) { toast("Ese archivo no es una copia de Empleo Claro"); }
+  } catch (err) { toast("Ese archivo no es una copia de Jale"); }
 });
 $("#borrar-todo").addEventListener("click", async () => {
   if (!(await confirmar("¿Borrar todos sus datos de este aparato? Si no guardó una copia, no se pueden recuperar.", "Sí, borrar todo"))) return;
@@ -788,4 +871,6 @@ $("#borrar-todo").addEventListener("click", async () => {
 });
 
 if ("speechSynthesis" in window) speechSynthesis.getVoices(); // precarga las voces
+// Permite instalar Jale en el celular y abrirla aunque falle el internet (solo en su propio servidor).
+if (!EN_VISOR && "serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 render();

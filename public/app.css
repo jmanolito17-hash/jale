@@ -129,3 +129,29 @@ footer.pie { border-top: 1px solid var(--line); padding-top: 16px; display: grid
   .wrap { max-width: none; padding: 0; }
   .cv { border: 0; padding: 0; border-radius: 0; }
 }
+
+/* Marca Jale */
+.logo { font-family: var(--f-display); font-weight: 800; font-size: 1.9rem; letter-spacing: -0.02em; line-height: 1; color: var(--accent); }
+.lema { display: block; margin-top: 2px; }
+.mark { font-size: 1.5rem; }
+.sellos { display: flex; flex-wrap: wrap; gap: 8px; }
+.sello { background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 0.9rem; padding: 6px 12px; border-radius: 99px; }
+.compartir { background: var(--surface); border: 2px dashed var(--line); border-radius: var(--radius); padding: 16px; display: grid; gap: 12px; }
+.btn.whatsapp { background: #1F7A4D; border-color: #1F7A4D; color: #fff; }
+.paso-lista { counter-reset: paso; display: grid; gap: 12px; padding: 0; margin: 0; list-style: none; }
+.paso-lista li { counter-increment: paso; display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; }
+.paso-lista li::before { content: counter(paso); width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-weight: 800; font-family: var(--f-display); }
+.mark { width: 52px; height: 52px; padding: 0; background: none; border-radius: 14px; flex: none; display: block; }
+:root { --sol: #F5B421; --sol-soft: #FDF1D2; --sol-ink: #4A3500; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --sol: #F7C04A; --sol-soft: #3A2E10; --sol-ink: #F7C04A; } }
+:root[data-theme="dark"] { --sol: #F7C04A; --sol-soft: #3A2E10; --sol-ink: #F7C04A; }
+
+/* Portada */
+.hero { display: grid; gap: 12px; padding-block: 6px; }
+.hero .grito { font-family: var(--f-display); font-weight: 800; font-size: clamp(2.3rem, 9vw, 3.3rem); line-height: 1; letter-spacing: -0.02em; color: var(--ink); }
+.hero .grito em { font-style: normal; color: var(--accent); background: linear-gradient(transparent 62%, var(--sol-soft) 62%); padding-inline: 4px; }
+.hero p.lead { font-size: 1.15rem; max-width: 34ch; }
+.sello { background: var(--sol-soft); color: var(--sol-ink); }
+.tool.principal { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.tool.principal .muted { color: var(--accent-ink); opacity: 0.85; }
+.tool.principal b { font-size: 1.3rem; }

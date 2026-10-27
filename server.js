@@ -1,4 +1,4 @@
-// Servidor de Empleo Claro: sirve /public y una API opcional de IA (Claude) en /api/ia.
+// Servidor de Jale: sirve /public y una API opcional de IA (Claude) en /api/ia.
 // Sin ANTHROPIC_API_KEY la app funciona igual; solo se ocultan los botones de IA.
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
@@ -14,13 +14,15 @@ const LIMITE_HORA = Number(process.env.IA_LIMITE_POR_HORA) || 15;    // por pers
 const LIMITE_DIA = Number(process.env.IA_LIMITE_DIARIO) || 300;      // para toda la app
 const cliente = process.env.ANTHROPIC_API_KEY ? new Anthropic() : null;
 
-const TIPOS = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".txt": "text/plain; charset=utf-8" };
+const TIPOS = { ".html": "text/html; charset=utf-8", ".webmanifest": "application/manifest+json", ".xml": "application/xml; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".txt": "text/plain; charset=utf-8" };
 const SEGURIDAD = {
   "x-content-type-options": "nosniff",
+  "strict-transport-security": "max-age=31536000; includeSubDomains",
+  "cross-origin-opener-policy": "same-origin",
   "referrer-policy": "no-referrer",
   "x-frame-options": "DENY",
   "permissions-policy": "camera=(), geolocation=(), microphone=(self)",
-  "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+  "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
 };
 
 class ErrorHttp extends Error { constructor(status, msg) { super(msg); this.status = status; } }
@@ -152,7 +154,7 @@ async function estatico(req, res, url) {
   try {
     const cuerpo = await readFile(archivo);
     const ext = path.extname(archivo);
-    res.writeHead(200, { ...SEGURIDAD, "content-type": TIPOS[ext] || "application/octet-stream", "cache-control": ext === ".html" ? "no-cache" : "public, max-age=300" });
+    res.writeHead(200, { ...SEGURIDAD, "content-type": TIPOS[ext] || "application/octet-stream", "cache-control": [".html", ".js", ".webmanifest"].includes(ext) ? "no-cache" : "public, max-age=86400" });
     res.end(req.method === "HEAD" ? undefined : cuerpo);
   } catch {
     res.writeHead(404, { ...SEGURIDAD, "content-type": "text/plain; charset=utf-8" }).end("No encontrado");
@@ -170,6 +172,6 @@ createServer(async (req, res) => {
     if (!res.headersSent) enviarJson(res, e.status || 500, { error: e instanceof ErrorHttp ? e.message : "Error del servidor" });
   }
 }).listen(PUERTO, () => {
-  console.log(`Empleo Claro en http://localhost:${PUERTO}`);
+  console.log(`Jale en http://localhost:${PUERTO}`);
   console.log(cliente ? `Ayuda con IA activada (${MODELO})` : "Sin ANTHROPIC_API_KEY: la ayuda con IA está desactivada");
 });

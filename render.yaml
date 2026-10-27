@@ -1,7 +1,7 @@
 # Blueprint de Render: crea el servicio web gratis a partir de este repositorio.
 services:
   - type: web
-    name: empleo-claro
+    name: jale
     runtime: node
     plan: free
     buildCommand: npm install

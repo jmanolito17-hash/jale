@@ -3,32 +3,48 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Empleo Claro</title>
-<meta name="description" content="Haga su currículum en inglés y español, revise si un trabajo es real y prepárese para la entrevista. Gratis, en Chicago.">
+<title>Jale · Ayuda para conseguir trabajo en Chicago</title>
+<meta name="description" content="Gratis y en español: haga su currículum en inglés tocando lo que sabe hacer, revise si un trabajo es real y practique la entrevista. Para Chicago.">
+<meta name="theme-color" content="#0D6B57">
+<link rel="canonical" href="https://jale.onrender.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Jale">
+<meta property="og:locale" content="es_US">
+<meta property="og:title" content="Jale · Su currículum en inglés, gratis y fácil">
+<meta property="og:description" content="Usted sabe trabajar. Jale le ayuda con lo demás: currículum en inglés, revisar si un trabajo es real y practicar la entrevista. Para Chicago.">
+<meta property="og:url" content="https://jale.onrender.com/">
+<meta property="og:image" content="https://jale.onrender.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap">
 <link rel="stylesheet" href="app.css">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230D6B57'/%3E%3Ctext x='16' y='22' font-size='15' font-family='Arial' font-weight='700' fill='white' text-anchor='middle'%3EEC%3C/text%3E%3C/svg%3E">
 </head>
 <body>
 <main class="wrap">
   <header class="top">
     <a class="brand" href="#/">
-      <span class="mark" aria-hidden="true">EC</span>
-      <span><h1>Empleo Claro</h1><span class="muted small">Su ayuda para conseguir trabajo · Chicago</span></span>
+      <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#0D6B57"/><g stroke="#F5B421" stroke-width="3" stroke-linecap="round"><line x1="47" y1="3.5" x2="47" y2="6.5"/><line x1="58.5" y1="17" x2="61" y2="17"/><line x1="55.1" y1="8.9" x2="57.2" y2="6.8"/><line x1="55.1" y1="25.1" x2="57.2" y2="27.2"/></g><circle cx="47" cy="17" r="7.5" fill="#F5B421"/><path d="M16 14H38V40A12.5 12.5 0 0 1 13 40V36.5H21.5V40A4 4 0 0 0 29.5 40V22H16Z" fill="#fff"/><rect x="12" y="55" width="40" height="3" rx="1.5" fill="#F5B421" opacity=".9"/></svg>
+      <span><h1 class="logo">Jale</h1><span class="muted small lema">Su ayuda para conseguir trabajo · Chicago</span></span>
     </a>
     <a class="btn chico" href="#/" id="btn-inicio" hidden>🏠 Inicio</a>
   </header>
   <div id="view" aria-live="polite"><noscript>Esta página necesita JavaScript para funcionar.</noscript></div>
   <footer class="pie no-print">
-    <p class="small muted">🔒 Sus datos se guardan solo en este aparato. No se mandan a nadie. Si usa una computadora pública, toque <b>Borrar mis datos</b> al terminar.</p>
+    <p class="small muted">🔒 Sus datos se guardan solo en este aparato. No se mandan a nadie y no hay que crear cuenta. Si usa una computadora pública, toque <b>Borrar mis datos</b> al terminar.</p>
     <div class="row">
       <button class="btn chico" id="guardar-copia">💾 Guardar una copia</button>
       <label class="btn chico" for="abrir-copia">📂 Abrir mi copia</label>
       <input type="file" id="abrir-copia" accept=".json,application/json" hidden>
       <button class="btn chico" id="borrar-todo">🗑️ Borrar mis datos</button>
     </div>
+    <p class="small muted">Jale es gratis. Información general, no es asesoría legal. <a href="#/acerca">Acerca de Jale y privacidad</a></p>
   </footer>
 </main>
 <div id="toast" class="toast" hidden></div>
