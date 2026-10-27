@@ -4,7 +4,7 @@ services:
     name: jale
     runtime: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm install --omit=dev && (npm audit --omit=dev || true)
     startCommand: npm start
     healthCheckPath: /api/estado
     autoDeploy: true
@@ -17,5 +17,7 @@ services:
         sync: false
       - key: IA_LIMITE_POR_HORA
         value: "15"
+      - key: LIMITE_PETICIONES_MINUTO
+        value: "240"
       - key: IA_LIMITE_DIARIO
         value: "300"

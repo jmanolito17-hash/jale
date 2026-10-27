@@ -25,8 +25,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap">
 <link rel="stylesheet" href="app.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Jale","url":"https://jale-cm3r.onrender.com/","description":"Ayuda gratis en español para conseguir trabajo en Chicago: currículum en inglés, revisar si un trabajo es real y practicar la entrevista.","applicationCategory":"BusinessApplication","operatingSystem":"Web","inLanguage":"es","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"areaServed":{"@type":"City","name":"Chicago"}}</script>
 </head>
 <body>
+<a class="saltar" href="#view">Saltar al contenido</a>
 <main class="wrap">
   <header class="top">
     <a class="brand" href="#/">
@@ -35,16 +37,16 @@
     </a>
     <a class="btn chico" href="#/" id="btn-inicio" hidden>🏠 Inicio</a>
   </header>
-  <div id="view" aria-live="polite"><noscript>Esta página necesita JavaScript para funcionar.</noscript></div>
+  <div id="view" aria-live="polite" tabindex="-1"><p class="muted">Cargando Jale…</p><noscript><p class="error">Jale necesita JavaScript para funcionar. Actívelo en su navegador o use otro navegador.</p></noscript></div>
   <footer class="pie no-print">
     <p class="small muted">🔒 Sus datos se guardan solo en este aparato. No se mandan a nadie y no hay que crear cuenta. Si usa una computadora pública, toque <b>Borrar mis datos</b> al terminar.</p>
     <div class="row">
       <button class="btn chico" id="guardar-copia">💾 Guardar una copia</button>
-      <label class="btn chico" for="abrir-copia">📂 Abrir mi copia</label>
+      <button class="btn chico" id="btn-abrir-copia" type="button">📂 Abrir mi copia</button>
       <input type="file" id="abrir-copia" accept=".json,application/json" hidden>
       <button class="btn chico" id="borrar-todo">🗑️ Borrar mis datos</button>
     </div>
-    <p class="small muted">Jale es gratis. Información general, no es asesoría legal. <a href="#/acerca">Acerca de Jale y privacidad</a></p>
+    <p class="small muted">Jale es gratis. Información general, no es asesoría legal. · <a href="#/acerca">Acerca de Jale</a> · <a href="#/privacidad">Privacidad</a> · <a href="#/terminos">Términos de uso</a></p>
   </footer>
 </main>
 <div id="toast" class="toast" hidden></div>

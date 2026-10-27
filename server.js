@@ -3,6 +3,7 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { gzipSync } from "node:zlib";
 import Anthropic from "@anthropic-ai/sdk";
 
 try { process.loadEnvFile(".env"); } catch {}
@@ -22,7 +23,7 @@ const SEGURIDAD = {
   "referrer-policy": "no-referrer",
   "x-frame-options": "DENY",
   "permissions-policy": "camera=(), geolocation=(), microphone=(self)",
-  "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+  "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
 };
 
 class ErrorHttp extends Error { constructor(status, msg) { super(msg); this.status = status; } }
@@ -125,17 +126,46 @@ const TAREAS = {
   }
 };
 
+const ipDe = req => (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.socket.remoteAddress || "?";
+
+/* ---------- CORS: la API solo acepta llamadas desde la propia página ---------- */
+// Se pueden permitir otros dominios con ORIGENES_PERMITIDOS="https://a.com,https://b.com".
+const ORIGENES = (process.env.ORIGENES_PERMITIDOS || "").split(",").map(s => s.trim()).filter(Boolean);
+function revisarOrigen(req) {
+  const origen = req.headers.origin;
+  if (!origen) return; // misma página (navegadores no mandan Origin en GET simples) o herramientas como curl
+  let host;
+  try { host = new URL(origen).host; } catch { throw new ErrorHttp(403, "Origen no permitido"); }
+  if (host !== req.headers.host && !ORIGENES.includes(origen)) throw new ErrorHttp(403, "Origen no permitido");
+}
+
+/* ---------- Límite general de peticiones (contra abuso) ---------- */
+const LIMITE_MINUTO = Number(process.env.LIMITE_PETICIONES_MINUTO) || 240;
+const ventana = new Map(); // ip -> {inicio, n}
+function limiteGeneral(ip) {
+  const ahora = Date.now(), v = ventana.get(ip);
+  if (!v || ahora - v.inicio > 60_000) { ventana.set(ip, { inicio: ahora, n: 1 }); }
+  else if (++v.n > LIMITE_MINUTO) throw new ErrorHttp(429, "Demasiadas peticiones. Espere un minuto.");
+  if (ventana.size > 20_000) for (const [k, x] of ventana) if (ahora - x.inicio > 60_000) ventana.delete(k);
+}
+
 async function api(req, res, url) {
+  revisarOrigen(req);
   if (url.pathname === "/api/estado" && req.method === "GET") return enviarJson(res, 200, { ok: true, ia: !!cliente });
   if (url.pathname === "/api/ia" && req.method === "POST") {
     if (!cliente) throw new ErrorHttp(503, "La ayuda con IA no está activada en este servidor.");
     const b = await leerJson(req);
-    const fn = Object.hasOwn(TAREAS, b.tipo) ? TAREAS[b.tipo] : null;
+    if (!b || typeof b !== "object" || Array.isArray(b)) throw new ErrorHttp(400, "Datos inválidos");
+    const fn = typeof b.tipo === "string" && Object.hasOwn(TAREAS, b.tipo) ? TAREAS[b.tipo] : null;
     if (!fn) throw new ErrorHttp(400, "Tipo de ayuda desconocido");
-    const ip = (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.socket.remoteAddress || "?";
-    revisarLimite(ip);
-    try { return enviarJson(res, 200, await fn(b)); }
-    catch (e) {
+    revisarLimite(ipDe(req));
+    const t0 = Date.now();
+    try {
+      const r = await fn(b);
+      console.log(JSON.stringify({ evento: "ia", tipo: b.tipo, ok: true, ms: Date.now() - t0 })); // sin contenido personal
+      return enviarJson(res, 200, r);
+    } catch (e) {
+      console.log(JSON.stringify({ evento: "ia", tipo: b.tipo, ok: false, ms: Date.now() - t0 }));
       if (e instanceof ErrorHttp) throw e;
       if (e instanceof Anthropic.RateLimitError) throw new ErrorHttp(429, "Hay mucha gente usando la IA. Intente en un minuto.");
       if (e instanceof Anthropic.AuthenticationError) { console.error("Clave de Anthropic inválida"); throw new ErrorHttp(503, "La ayuda con IA no está disponible ahora."); }
@@ -146,32 +176,57 @@ async function api(req, res, url) {
   throw new ErrorHttp(404, "No existe");
 }
 
+/* ---------- Archivos estáticos (con compresión y páginas de error propias) ---------- */
+const COMPRIMIBLE = new Set([".html", ".css", ".js", ".json", ".svg", ".webmanifest", ".xml", ".txt"]);
+const cacheGzip = new Map(); // ruta -> buffer comprimido (los archivos no cambian mientras corre el servidor)
+
+function enviarArchivo(req, res, status, archivo, cuerpo, extra = {}) {
+  const ext = path.extname(archivo);
+  const headers = { ...SEGURIDAD, "content-type": TIPOS[ext] || "application/octet-stream", vary: "Accept-Encoding", ...extra };
+  if (COMPRIMIBLE.has(ext) && /\bgzip\b/.test(req.headers["accept-encoding"] || "")) {
+    if (!cacheGzip.has(archivo)) cacheGzip.set(archivo, gzipSync(cuerpo));
+    cuerpo = cacheGzip.get(archivo); headers["content-encoding"] = "gzip";
+  }
+  res.writeHead(status, headers).end(req.method === "HEAD" ? undefined : cuerpo);
+}
+
+async function paginaError(req, res, status) {
+  const archivo = path.join(PUBLICO, status === 404 ? "404.html" : "500.html");
+  try { enviarArchivo(req, res, status, archivo, await readFile(archivo), { "cache-control": "no-store" }); }
+  catch { res.writeHead(status, { ...SEGURIDAD, "content-type": "text/plain; charset=utf-8" }).end(status === 404 ? "No encontrado" : "Error del servidor"); }
+}
+
 async function estatico(req, res, url) {
-  let ruta = decodeURIComponent(url.pathname);
+  let ruta;
+  try { ruta = decodeURIComponent(url.pathname); } catch { throw new ErrorHttp(400, "Dirección inválida"); }
   if (ruta.endsWith("/")) ruta += "index.html";
   const archivo = path.join(PUBLICO, ruta);
-  if (!archivo.startsWith(PUBLICO + path.sep)) return res.writeHead(400).end();
-  try {
-    const cuerpo = await readFile(archivo);
-    const ext = path.extname(archivo);
-    res.writeHead(200, { ...SEGURIDAD, "content-type": TIPOS[ext] || "application/octet-stream", "cache-control": [".html", ".js", ".webmanifest"].includes(ext) ? "no-cache" : "public, max-age=86400" });
-    res.end(req.method === "HEAD" ? undefined : cuerpo);
-  } catch {
-    res.writeHead(404, { ...SEGURIDAD, "content-type": "text/plain; charset=utf-8" }).end("No encontrado");
-  }
+  if (!archivo.startsWith(PUBLICO + path.sep) || ruta.includes("\0")) throw new ErrorHttp(400, "Dirección inválida");
+  let cuerpo;
+  try { cuerpo = await readFile(archivo); } catch { return paginaError(req, res, 404); }
+  const ext = path.extname(archivo);
+  enviarArchivo(req, res, 200, archivo, cuerpo, { "cache-control": [".html", ".js", ".webmanifest"].includes(ext) ? "no-cache" : "public, max-age=86400" });
 }
 
 createServer(async (req, res) => {
-  const url = new URL(req.url, "http://localhost");
+  let url;
   try {
+    url = new URL(req.url, "http://localhost");
+    limiteGeneral(ipDe(req));
     if (url.pathname.startsWith("/api/")) await api(req, res, url);
     else if (req.method === "GET" || req.method === "HEAD") await estatico(req, res, url);
-    else res.writeHead(405).end();
+    else throw new ErrorHttp(405, "Método no permitido");
   } catch (e) {
-    if (!(e instanceof ErrorHttp)) console.error(e);
-    if (!res.headersSent) enviarJson(res, e.status || 500, { error: e instanceof ErrorHttp ? e.message : "Error del servidor" });
+    const status = e instanceof ErrorHttp ? e.status : 500;
+    // Registro de errores: método, ruta y código; nunca el contenido que escribió la persona.
+    if (status >= 500) console.error(JSON.stringify({ evento: "error", status, metodo: req.method, ruta: url?.pathname, detalle: String(e?.stack || e).slice(0, 2000) }));
+    if (res.headersSent) return res.end();
+    if (url?.pathname.startsWith("/api/") || status === 429 || status === 405) return enviarJson(res, status, { error: e instanceof ErrorHttp ? e.message : "Error del servidor. Intente de nuevo." });
+    if (status >= 500) return paginaError(req, res, 500);
+    res.writeHead(status, { ...SEGURIDAD, "content-type": "text/plain; charset=utf-8" }).end(e.message);
   }
 }).listen(PUERTO, () => {
+  process.on("unhandledRejection", e => console.error(JSON.stringify({ evento: "error", tipo: "unhandledRejection", detalle: String(e?.stack || e).slice(0, 2000) })));
   console.log(`Jale en http://localhost:${PUERTO}`);
   console.log(cliente ? `Ayuda con IA activada (${MODELO})` : "Sin ANTHROPIC_API_KEY: la ayuda con IA está desactivada");
 });

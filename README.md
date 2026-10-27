@@ -75,3 +75,33 @@ render.yaml         configuración para Render
 ```
 
 Los recursos de Chicago y el salario mínimo ($17.05 desde el 1 de julio de 2026) se verificaron en octubre de 2026. Revíselos cada año en `public/datos.js`.
+
+## En línea
+
+- App pública: **https://jale-cm3r.onrender.com**
+- Código: https://github.com/jmanolito17-hash/jale (cada `git push` a `main` se publica solo en Render).
+
+## Seguridad y operación
+
+| Tema | Cómo está resuelto |
+|---|---|
+| Secretos | Ninguna llave en el código. Todo va en variables de entorno (Render → Environment, o `.env` en local). `.env` está en `.gitignore`. |
+| Datos personales | No hay base de datos ni cuentas: los datos de cada persona viven solo en su navegador. Por eso no aplican la inyección SQL, el control de acceso entre usuarios ni el respaldo de una base de datos. La persona puede guardar su propia copia con “Guardar una copia”. |
+| Validación | El servidor valida tipo, tamaño (20 KB por petición) y largo de cada campo de `/api/ia`. Los datos que se abren desde un archivo de copia se limpian campo por campo (`limpiarDatos` en `app.js`, archivo de 1 MB como máximo). |
+| Límites | Máximo 15 trabajos, 30 tareas por trabajo y 300 solicitudes. IA: 15 usos por hora por persona y 300 al día. Todas las rutas: 240 peticiones por minuto por persona. |
+| XSS | Todo texto de la persona pasa por `esc()` antes de mostrarse. CSP estricta, sin scripts ni estilos sueltos en el HTML (`script-src 'self'`, `style-src 'self'`). |
+| Cabeceras | HTTPS (Render), HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy y COOP. |
+| CORS | La API rechaza llamadas desde otros dominios. Para permitir uno, agréguelo en `ORIGENES_PERMITIDOS`. |
+| Dependencias | Una sola: `@anthropic-ai/sdk`. Render corre `npm audit` en cada despliegue y Dependabot propone actualizaciones cada semana. |
+| Errores | Páginas propias 404 y 500 sin detalles técnicos. Los errores se registran en Render → Logs, sin el texto que escribió la persona. |
+| Privacidad | Aviso de privacidad y términos de uso dentro de la app (`#/privacidad`, `#/terminos`). No hay cookies. |
+
+### Variables de entorno
+
+| Variable | Para qué | Valor por defecto |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | Activa la ayuda con IA (opcional) | vacía |
+| `IA_LIMITE_POR_HORA` | Usos de IA por persona por hora | 15 |
+| `IA_LIMITE_DIARIO` | Usos de IA en total por día | 300 |
+| `LIMITE_PETICIONES_MINUTO` | Peticiones por persona por minuto | 240 |
+| `ORIGENES_PERMITIDOS` | Otros dominios que pueden usar la API | vacía |

@@ -17,13 +17,48 @@ function nuevo() {
     solicitudes: [], respuestas: {}, recortar: false, idiomaCV: "en"
   };
 }
+// Límites: evitan que los datos crezcan sin control.
+const LIM = { trabajos: 15, solicitudes: 300, tareas: 30, archivoBytes: 1_000_000 };
+
+// Revisa y limpia datos que vienen de fuera (el almacenamiento o un archivo de copia):
+// solo pasan los campos conocidos, con su tipo y largo máximo. Los ids se usan en enlaces y atributos.
+const txt = (v, max) => (typeof v === "string" ? v : "").slice(0, max);
+const idOk = v => typeof v === "string" && /^[A-Za-z0-9_-]{1,40}$/.test(v);
+const anio = v => /^\d{4}$/.test(String(v ?? "")) ? String(v) : "";
+const lista = (v, ok) => Array.isArray(v) ? v.filter(ok) : [];
+function limpiarDatos(d) {
+  const n = nuevo();
+  if (!d || typeof d !== "object") return n;
+  const p = d.perfil && typeof d.perfil === "object" ? d.perfil : {};
+  const deLista = (arr, base) => [...new Set(lista(arr, x => base.some(b => b[0] === x)))];
+  n.perfil = {
+    nombre: txt(p.nombre, 80), telefono: txt(p.telefono, 30), email: txt(p.email, 80), ciudad: typeof p.ciudad === "string" ? txt(p.ciudad, 60) : "Chicago, IL",
+    objetivo: OFICIOS.some(o => o.id === p.objetivo) ? p.objetivo : "",
+    trabajos: lista(p.trabajos, t => t && typeof t === "object" && idOk(t.id)).slice(0, LIM.trabajos).map(t => ({
+      id: t.id, oficio: OFICIOS.some(o => o.id === t.oficio) ? t.oficio : "", lugar: txt(t.lugar, 80), ciudad: txt(t.ciudad, 60),
+      desde: anio(t.desde), hasta: anio(t.hasta), actual: t.actual === true,
+      tareas: lista(t.tareas, x => Array.isArray(x) && typeof x[0] === "string" && typeof x[1] === "string").slice(0, LIM.tareas).map(x => [x[0].slice(0, 200), x[1].slice(0, 200)])
+    })),
+    cualidades: deLista(p.cualidades, CUALIDADES).slice(0, 5), certificados: deLista(p.certificados, CERTIFICADOS),
+    ingles: NIVEL_INGLES.some(x => x[0] === p.ingles) ? p.ingles : "", otrosIdiomas: txt(p.otrosIdiomas, 60),
+    disponibilidad: deLista(p.disponibilidad, DISPONIBILIDAD),
+    estudios: ESTUDIOS.some(x => x[0] === p.estudios) ? p.estudios : "", estudiosPais: txt(p.estudiosPais, 40)
+  };
+  n.solicitudes = lista(d.solicitudes, s => s && typeof s === "object" && idOk(s.id)).slice(0, LIM.solicitudes).map(s => ({
+    id: s.id, empresa: txt(s.empresa, 100), puesto: txt(s.puesto, 100), fecha: /^\d{4}-\d{2}-\d{2}$/.test(s.fecha) ? s.fecha : "",
+    estado: ESTADOS.some(e => e[0] === s.estado) ? s.estado : "por-enviar", direccion: txt(s.direccion, 150), telefono: txt(s.telefono, 30),
+    notas: txt(s.notas, 1000), conocido: txt(s.conocido, 120), rrhh: txt(s.rrhh, 120)
+  }));
+  if (d.respuestas && typeof d.respuestas === "object") for (const [k, v] of Object.entries(d.respuestas)) if (/^\d{1,2}$/.test(k)) n.respuestas[k] = txt(v, 1500);
+  n.recortar = d.recortar === true;
+  n.idiomaCV = d.idiomaCV === "es" ? "es" : "en";
+  return n;
+}
+
 let S;
 function cargar() {
   S = nuevo();
-  try {
-    const raw = localStorage.getItem(CLAVE);
-    if (raw) { const d = JSON.parse(raw); S = { ...S, ...d, perfil: { ...S.perfil, ...d.perfil } }; }
-  } catch (e) {}
+  try { const raw = localStorage.getItem(CLAVE); if (raw) S = limpiarDatos(JSON.parse(raw)); } catch (e) {}
 }
 function guardar() { try { localStorage.setItem(CLAVE, JSON.stringify(S)); } catch (e) {} }
 cargar();
@@ -87,7 +122,7 @@ function confirmar(texto, si = "Sí, borrar") {
     const capa = document.createElement("div");
     capa.className = "capa";
     capa.innerHTML = `<div class="panel dialogo" role="alertdialog" aria-modal="true" aria-labelledby="dlg-t">
-      <p id="dlg-t" style="font-weight:700">${esc(texto)}</p>
+      <p id="dlg-t" class="fuerte">${esc(texto)}</p>
       <div class="nav-pasos"><button type="button" class="btn" data-r="no">No</button><button type="button" class="btn primary" data-r="si">${esc(si)}</button></div></div>`;
     const cerrar = v => { capa.remove(); resolver(v); };
     capa.addEventListener("click", e => { const b = e.target.closest("[data-r]"); if (b) cerrar(b.dataset.r === "si"); else if (e.target === capa) cerrar(false); });
@@ -251,7 +286,7 @@ function vCV(arg, arg2) {
   const n = Math.min(Math.max(+arg || 1, 1), PASOS.length), paso = PASOS[n - 1];
   return `
   <section class="stack">
-    <div class="progreso"><span class="small muted">Su currículum · Paso ${n} de ${PASOS.length}</span><div class="barra"><i style="width:${n / PASOS.length * 100}%"></i></div></div>
+    <div class="progreso"><span class="small muted">Su currículum · Paso ${n} de ${PASOS.length}</span><progress class="barra" max="${PASOS.length}" value="${n}" aria-label="Paso ${n} de ${PASOS.length}"></progress></div>
     <h2>${paso.titulo}</h2>
     <p>${paso.ayuda}</p>
     ${oir(paso.titulo + ". " + paso.ayuda)}
@@ -275,7 +310,7 @@ function vTrabajo(id) {
   const propias = t.tareas.filter(x => !o?.tareas.some(y => y[0] === x[0]));
   return `
   <section class="stack">
-    <a class="btn ghost chico" href="#/cv/4" style="justify-self:start">← Volver a mis trabajos</a>
+    <a class="btn ghost chico inicio" href="#/cv/4">← Volver a mis trabajos</a>
     <h2>${t.nuevo ? "Agregar un trabajo" : "Cambiar este trabajo"}</h2>
     ${oir("¿Qué tipo de trabajo era? Después escriba dónde fue y toque las tareas que hacía.")}
     <form class="stack" id="form-trabajo">
@@ -287,9 +322,9 @@ function vTrabajo(id) {
         <h3>2. ¿Dónde fue?</h3>
         <label class="campo" for="t-lugar">Nombre del lugar o empresa<div class="con-mic"><input type="text" id="t-lugar" value="${esc(t.lugar)}" maxlength="80" placeholder="Si fue por su cuenta, déjelo vacío">${mic("t-lugar")}</div></label>
         <label class="campo" for="t-ciudad">Ciudad y país<input type="text" id="t-ciudad" value="${esc(t.ciudad)}" maxlength="60"></label>
-        <div class="row" style="align-items:end">
-          <label class="campo" for="t-desde" style="flex:1;min-width:120px">Año en que empezó<input type="number" id="t-desde" inputmode="numeric" min="1950" max="${AHORA}" value="${esc(t.desde)}"></label>
-          <label class="campo" for="t-hasta" style="flex:1;min-width:120px">Año en que terminó<input type="number" id="t-hasta" inputmode="numeric" min="1950" max="${AHORA}" value="${esc(t.hasta)}" ${t.actual ? "disabled" : ""}></label>
+        <div class="row abajo">
+          <label class="campo mitad" for="t-desde">Año en que empezó<input type="number" id="t-desde" inputmode="numeric" min="1950" max="${AHORA}" value="${esc(t.desde)}"></label>
+          <label class="campo mitad" for="t-hasta">Año en que terminó<input type="number" id="t-hasta" inputmode="numeric" min="1950" max="${AHORA}" value="${esc(t.hasta)}" ${t.actual ? "disabled" : ""}></label>
         </div>
         <label class="opcion"><input type="checkbox" id="t-actual" ${t.actual ? "checked" : ""}><span>Todavía trabajo ahí</span></label>
       </div>
@@ -392,6 +427,7 @@ function vRevisar() {
       <p class="small">Pegue aquí el anuncio (opcional). Se buscará en internet la dirección, el teléfono y señales de alerta.</p>
       <label class="campo" for="r-anuncio">Texto del anuncio<textarea id="r-anuncio" maxlength="6000">${esc(r.anuncio)}</textarea></label>
       <button type="button" class="btn primary" id="r-ia" ${r.cargando ? "disabled" : ""}>${r.cargando ? "Buscando… puede tardar un minuto" : "🔍 Investigar esta empresa"}</button>
+      ${r.error ? `<p class="error" role="alert">${esc(r.error)}</p>` : ""}
       ${r.resultado ? `<div class="ia-resp">${esc(r.resultado.texto)}</div>
         ${r.resultado.fuentes?.length ? `<p class="small"><b>Fuentes:</b></p><ul class="small">${r.resultado.fuentes.map(f => `<li><a href="${esc(f.url)}" target="_blank" rel="noopener noreferrer">${esc(f.titulo || f.url)}</a></li>`).join("")}</ul>` : ""}
         <p class="small muted">La computadora puede equivocarse. Confirme llamando o yendo en persona.</p>` : ""}
@@ -420,7 +456,7 @@ function vBuscar() {
       <div class="panel">
         <h3>${esc(g.grupo)}</h3>
         ${g.items.map(x => `
-          <div class="item"><span class="stack" style="gap:4px">
+          <div class="item"><span class="stack junto">
             <b>${esc(x.nombre)}</b>
             <span class="small">${esc(x.que)}</span>
             ${x.dir ? `<span class="small muted">📍 ${esc(x.dir)}</span>` : ""}
@@ -432,7 +468,7 @@ function vBuscar() {
       </div>`).join("")}
     <div class="panel">
       <h3>Consejos</h3>
-      <ul class="stack" style="padding-left:20px;margin:0">
+      <ul class="stack lista">
         <li>Vaya en persona con 2 copias de su currículum impreso. En limpieza, cocina y almacén funciona muy bien.</li>
         <li>En las universidades, busque la oficina de <b>Facilities</b> o <b>Human Resources</b>.</li>
         <li>Antes de mandar su currículum a una empresa que no conoce, use <a href="#/revisar">¿Es real este trabajo?</a></li>
@@ -448,7 +484,7 @@ function bloquePregunta(q, i) {
   const c = consejoIA[i] || {};
   return `
     <p class="small muted">Le pueden preguntar en inglés:</p>
-    <p style="font-size:1.25rem"><b>“${esc(q.en)}”</b></p>
+    <p class="grande"><b>“${esc(q.en)}”</b></p>
     <p>${esc(q.es)}</p>
     <div class="row">${oir(q.en, "en-US", "🔊 Oír en inglés")}${oir(q.es, "es-US", "🔊 En español")}</div>
     <div class="note"><b>Cómo responder:</b> ${esc(q.consejo)}</div>
@@ -457,7 +493,7 @@ function bloquePregunta(q, i) {
     ${oir(q.ej_en, "en-US", "🔊 Oír el ejemplo en inglés")}
     <label class="campo" for="resp-${i}">Su respuesta (para practicar)<div class="con-mic"><textarea id="resp-${i}" data-resp="${i}" maxlength="1500">${esc(S.respuestas[i] || "")}</textarea>${mic("resp-" + i)}</div></label>
     ${iaPara("consejo") ? `<button type="button" class="btn" data-consejo="${i}" ${c.cargando ? "disabled" : ""}>${c.cargando ? "Pensando…" : "🤖 ¿Qué tal mi respuesta?"}</button>
-      ${c.texto ? `<div class="ia-resp">${esc(c.texto)}</div>` : ""}` : ""}`;
+      ${c.texto ? `<div class="ia-resp">${esc(c.texto)}</div>` : ""}${c.error ? `<p class="error" role="alert">${esc(c.error)}</p>` : ""}` : ""}`;
 }
 
 function vEntrevista(arg) {
@@ -465,7 +501,7 @@ function vEntrevista(arg) {
     const i = +arg;
     return `
     <section class="stack">
-      <a class="btn ghost chico" href="#/entrevista" style="justify-self:start">← Todas las preguntas</a>
+      <a class="btn ghost chico inicio" href="#/entrevista">← Todas las preguntas</a>
       <h2>Practicar: pregunta ${i + 1} de ${PREGUNTAS.length}</h2>
       <div class="panel">${bloquePregunta(PREGUNTAS[i], i)}</div>
       <div class="nav-pasos">
@@ -509,7 +545,7 @@ function vSolicitudes(id) {
     if (!s) { location.hash = "#/solicitudes"; return ""; }
     return `
     <section class="stack">
-      <a class="btn ghost chico" href="#/solicitudes" style="justify-self:start">← Mis solicitudes</a>
+      <a class="btn ghost chico inicio" href="#/solicitudes">← Mis solicitudes</a>
       <h2>${id === "nueva" ? "Nueva solicitud" : esc(s.empresa)}</h2>
       <form class="stack" id="form-sol" data-id="${esc(s.id)}">
         <label class="campo" for="s-empresa">Empresa<input type="text" id="s-empresa" value="${esc(s.empresa)}" required maxlength="100"></label>
@@ -550,7 +586,7 @@ function vDerechos() {
     <h2>Qué llevar y sus derechos</h2>
     <div class="panel">
       <h3>📁 Qué llevar a la entrevista</h3>
-      <ul class="stack" style="padding-left:20px;margin:0">
+      <ul class="stack lista">
         <li>Identificación con foto.</li>
         <li>2 copias de su currículum impreso.</li>
         <li>2 o 3 referencias: nombre y teléfono de exjefes o compañeros (no familiares). Avíseles antes.</li>
@@ -560,7 +596,7 @@ function vDerechos() {
     </div>
     <div class="panel">
       <h3>💵 Cuánto le deben pagar</h3>
-      <ul class="stack" style="padding-left:20px;margin:0">
+      <ul class="stack lista">
         <li><b>Ciudad de Chicago: $17.05 la hora</b> desde el 1 de julio de 2026 (empresas con 4 o más trabajadores).</li>
         <li>Resto del condado de Cook: $15.40 la hora. Resto de Illinois: $15.00 la hora.</li>
         <li>Si trabaja por hora y pasa de 40 horas en una semana, casi siempre le deben pagar <b>tiempo y medio</b> por las horas extra.</li>
@@ -571,7 +607,7 @@ function vDerechos() {
     </div>
     <div class="panel">
       <h3>🚩 Cuidado con las estafas</h3>
-      <ul class="stack" style="padding-left:20px;margin:0">
+      <ul class="stack lista">
         <li>Nunca pague para conseguir trabajo.</li>
         <li>No dé su número de Seguro Social ni su cuenta de banco antes de una entrevista de verdad.</li>
         <li>Si le mandan un cheque y le piden devolver parte del dinero, es estafa.</li>
@@ -621,20 +657,84 @@ function vAcerca() {
   <section class="stack">
     <h2>Acerca de Jale</h2>
     <p><b>Jale</b> es una ayuda gratuita para personas que saben hacer su trabajo pero no tienen práctica con computadoras ni con currículums. Está hecha para Chicago y en español.</p>
-    <div class="panel">
-      <h3>🔒 Su privacidad</h3>
-      <ul class="stack" style="padding-left:20px;margin:0">
-        <li>No hay que crear cuenta.</li>
-        <li>Lo que usted escribe se guarda solo en este aparato. No lo vemos ni lo vendemos.</li>
-        <li>Si usa la ayuda con inteligencia artificial, ese texto se manda para recibir la respuesta. Solo se manda lo que está en esa pantalla.</li>
-        <li>En una computadora pública, toque <b>Borrar mis datos</b> al terminar.</li>
-      </ul>
+    <div class="row">
+      <a class="btn" href="#/privacidad">🔒 Aviso de privacidad</a>
+      <a class="btn" href="#/terminos">📄 Términos de uso</a>
     </div>
     <div class="panel">
       <h3>De dónde sale la información</h3>
       <p class="small">Los lugares de Chicago, el salario mínimo y los derechos se revisaron en octubre de 2026 en páginas oficiales. Es información general, no asesoría legal. Los horarios y programas cambian: llame antes de ir.</p>
     </div>
     ${bloqueCompartir()}
+  </section>`;
+}
+
+const REVISADO = "26 de octubre de 2026";
+function vPrivacidad() {
+  return `
+  <section class="stack">
+    <h2>Aviso de privacidad</h2>
+    <p class="small muted">Última actualización: ${REVISADO}</p>
+    <div class="panel">
+      <h3>Lo más importante</h3>
+      <ul class="stack lista">
+        <li><b>No hay cuentas.</b> No pedimos correo ni contraseña para usar Jale.</li>
+        <li><b>Sus datos se quedan en su aparato.</b> Lo que escribe (nombre, teléfono, trabajos, solicitudes) se guarda en el almacenamiento de este navegador. Nosotros no lo recibimos ni lo guardamos en ningún servidor.</li>
+        <li><b>No vendemos ni compartimos datos.</b> No hay publicidad ni rastreadores.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Cuándo sale información de su aparato</h3>
+      <ul class="stack lista">
+        <li><b>Ayuda con inteligencia artificial</b> (solo si usted toca esos botones): se manda el texto de esa pantalla para recibir la respuesta. Lo procesa Anthropic (Claude). No se guarda con su nombre en Jale.</li>
+        <li><b>Letras de la página:</b> se cargan desde Google Fonts, que puede ver la dirección de internet (IP) de su aparato.</li>
+        <li><b>Enlaces a otras páginas</b> (mapas, Google, WhatsApp, centros de empleo): al abrirlos, se aplican las reglas de privacidad de esas páginas.</li>
+        <li><b>Registros del servidor:</b> para que el servicio funcione y para detectar errores se registran datos técnicos (fecha, página pedida, tipo de error). No registramos lo que usted escribe.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Cookies</h3>
+      <p>Jale <b>no usa cookies</b>. Usa el almacenamiento del navegador solo para guardar sus datos en este aparato y para poder abrir sin internet.</p>
+    </div>
+    <div class="panel">
+      <h3>Usted decide</h3>
+      <ul class="stack lista">
+        <li>Puede <b>guardar una copia</b> de sus datos o <b>borrarlos todos</b> con los botones de abajo de cada pantalla.</li>
+        <li>Si usa una computadora pública, borre sus datos al terminar.</li>
+        <li>Jale no está hecha para menores de 16 años.</li>
+      </ul>
+    </div>
+    <a class="btn" href="#/terminos">📄 Ver los términos de uso</a>
+  </section>`;
+}
+
+function vTerminos() {
+  return `
+  <section class="stack">
+    <h2>Términos de uso</h2>
+    <p class="small muted">Última actualización: ${REVISADO}</p>
+    <div class="panel">
+      <ul class="stack lista">
+        <li><b>Jale es gratis</b> y se ofrece tal como está, para ayudarle a preparar su búsqueda de trabajo.</li>
+        <li><b>No garantizamos un empleo.</b> Le ayudamos a prepararse; la decisión de contratar es de cada empresa.</li>
+        <li><b>Información general, no asesoría legal.</b> Los datos de salarios, derechos y lugares pueden cambiar. Confirme con la fuente oficial o llame al 311.</li>
+        <li><b>Usted es responsable de lo que pone en su currículum.</b> Escriba solo información verdadera.</li>
+        <li><b>La ayuda con inteligencia artificial puede equivocarse.</b> Revise siempre lo que le sugiere, sobre todo direcciones y teléfonos.</li>
+        <li><b>Páginas de otros:</b> no somos responsables del contenido de los enlaces externos ni de las ofertas de trabajo que usted encuentre.</li>
+        <li><b>Uso correcto:</b> no use Jale para molestar a otras personas, para fines ilegales ni para intentar dañar el servicio. Podemos limitar el uso para proteger el servicio.</li>
+      </ul>
+    </div>
+    <a class="btn" href="#/privacidad">🔒 Ver el aviso de privacidad</a>
+  </section>`;
+}
+
+function vNoEncontrado() {
+  return `
+  <section class="panel stack centrado">
+    <p class="emoji-grande" aria-hidden="true">🧭</p>
+    <h2>No encontramos esa pantalla</h2>
+    <p>Puede que el enlace esté incompleto. Sus datos están a salvo.</p>
+    <a class="btn primary" href="#/">🏠 Volver al inicio</a>
   </section>`;
 }
 
@@ -682,15 +782,25 @@ function vInicio() {
 }
 
 /* ---------- Render y eventos ---------- */
-const RUTAS = { "": vInicio, cv: vCV, revisar: vRevisar, buscar: vBuscar, entrevista: vEntrevista, ingles: vIngles, solicitudes: vSolicitudes, derechos: vDerechos, recomendacion: vRecomendacion, acerca: vAcerca };
-let rutaAnterior = "";
+const RUTAS = { "": vInicio, cv: vCV, revisar: vRevisar, buscar: vBuscar, entrevista: vEntrevista, ingles: vIngles, solicitudes: vSolicitudes, derechos: vDerechos, recomendacion: vRecomendacion, acerca: vAcerca, privacidad: vPrivacidad, terminos: vTerminos };
+let rutaAnterior = null;
 function render() {
-  const [, base = "", a, b] = location.hash.split("/");
-  const html = (RUTAS[base] || vInicio)(a, b);
+  const h = location.hash;
+  const [, base = "", a, b] = h.split("/");
+  const valida = h === "" || h === "#" || h.startsWith("#/");
+  const vista = valida ? (Object.hasOwn(RUTAS, base) ? RUTAS[base] : vNoEncontrado) : vInicio;
+  let html;
+  try { html = vista(a, b); }
+  catch (e) { console.error(e); html = `<section class="panel stack centrado"><h2>Algo salió mal en esta pantalla</h2><p>Sus datos siguen guardados. Vuelva al inicio e intente otra vez.</p><a class="btn primary" href="#/">🏠 Volver al inicio</a></section>`; }
   if (html === "") return;
   $("#view").innerHTML = html;
   $("#btn-inicio").hidden = !base;
-  if (location.hash !== rutaAnterior) { window.scrollTo({ top: 0 }); rutaAnterior = location.hash; }
+  if (h !== rutaAnterior) {
+    window.scrollTo({ top: 0 });
+    // Al cambiar de pantalla, llevar el foco al título (ayuda a quien navega con teclado o lector de pantalla).
+    if (rutaAnterior !== null) { const t = $("#view h2, #view [role=heading]"); if (t) { t.tabIndex = -1; t.focus({ preventScroll: true }); } }
+    rutaAnterior = h;
+  }
 }
 function renderQuieto() { const y = window.scrollY; render(); window.scrollTo({ top: y }); }
 addEventListener("hashchange", () => { if (!location.hash.startsWith("#/cv/trabajo")) borrador = null; render(); });
@@ -721,6 +831,7 @@ V.addEventListener("click", async e => {
       try { const r = await ia({ tipo: "tarea", texto: txt, oficio: oficio(borrador.oficio)?.es || "" }); tarea = [r.es || txt, r.en || txt]; }
       catch (err) { toast("No se pudo traducir. Se guardará como la escribió."); }
     }
+    if (borrador.tareas.length >= LIM.tareas) { toast(`Puede poner hasta ${LIM.tareas} tareas por trabajo.`); return; }
     borrador.tareas.push(tarea); renderQuieto(); toast("Tarea agregada"); return;
   }
   if (d.idioma) { S.idiomaCV = d.idioma; guardar(); renderQuieto(); return; }
@@ -757,8 +868,9 @@ V.addEventListener("click", async e => {
   if (b.id === "r-ia") {
     if (!revisar.empresa.trim() && !revisar.anuncio.trim()) { toast("Escriba el nombre de la empresa o pegue el anuncio"); return; }
     revisar.cargando = true; revisar.resultado = null; renderQuieto();
+    revisar.error = "";
     try { revisar.resultado = await ia({ tipo: "empresa", empresa: revisar.empresa, ciudad: revisar.ciudad, anuncio: revisar.anuncio }); }
-    catch (err) { toast(err.message); }
+    catch (err) { revisar.error = err.message; }
     revisar.cargando = false; renderQuieto(); return;
   }
   if (b.id === "r-guardar") {
@@ -770,7 +882,7 @@ V.addEventListener("click", async e => {
     if (resp.length < 10) { toast("Primero escriba o dicte su respuesta"); return; }
     consejoIA[i] = { cargando: true }; renderQuieto();
     try { const r = await ia({ tipo: "consejo", pregunta: PREGUNTAS[i].es, respuesta: resp }); consejoIA[i] = { texto: r.texto }; }
-    catch (err) { consejoIA[i] = {}; toast(err.message); }
+    catch (err) { consejoIA[i] = { error: err.message }; }
     renderQuieto(); return;
   }
   if (d.borrarSol) {
@@ -819,6 +931,7 @@ V.addEventListener("submit", e => {
     if (t.desde && t.hasta && !t.actual && +t.hasta < +t.desde) { toast("El año en que terminó va después del año en que empezó"); return; }
     const { nuevo: _, ...limpio } = t;
     const i = S.perfil.trabajos.findIndex(x => x.id === t.id);
+    if (i < 0 && S.perfil.trabajos.length >= LIM.trabajos) { toast(`Puede poner hasta ${LIM.trabajos} trabajos. Deje los más importantes.`); return; }
     if (i >= 0) S.perfil.trabajos[i] = limpio; else S.perfil.trabajos.push(limpio);
     if (!S.perfil.objetivo) S.perfil.objetivo = t.oficio;
     guardar(); borrador = null; toast("Trabajo guardado"); location.hash = "#/cv/4"; return;
@@ -832,6 +945,7 @@ V.addEventListener("submit", e => {
     };
     if (!s.empresa) { toast("Escriba el nombre de la empresa"); return; }
     const i = S.solicitudes.findIndex(x => x.id === s.id);
+    if (i < 0 && S.solicitudes.length >= LIM.solicitudes) { toast(`Puede anotar hasta ${LIM.solicitudes} solicitudes. Borre algunas viejas.`); return; }
     if (i >= 0) S.solicitudes[i] = s; else S.solicitudes.push(s);
     editando = null; guardar(); toast("Guardado"); location.hash = "#/solicitudes"; return;
   }
@@ -854,12 +968,15 @@ $("#guardar-copia").addEventListener("click", async () => {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   toast("Copia guardada en Descargas. Guárdela en una memoria USB o mándesela por correo.");
 });
+$("#btn-abrir-copia").addEventListener("click", () => $("#abrir-copia").click());
+$(".saltar").addEventListener("click", e => { e.preventDefault(); $("#view").focus(); });
 $("#abrir-copia").addEventListener("change", async e => {
   const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  if (f.size > LIM.archivoBytes) { toast("Ese archivo es demasiado grande para ser una copia de Jale"); return; }
   try {
     const d = JSON.parse(await f.text());
     if (!d || typeof d.perfil !== "object") throw new Error();
-    S = { ...nuevo(), ...d, perfil: { ...nuevo().perfil, ...d.perfil } }; guardar();
+    S = limpiarDatos(d); guardar();
     toast("Sus datos se abrieron bien"); location.hash = "#/"; render();
   } catch (err) { toast("Ese archivo no es una copia de Jale"); }
 });
