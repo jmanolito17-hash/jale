@@ -1,5 +1,5 @@
 // Jale: guarda la app para que abra rápido y aunque falle el internet. No guarda datos de la persona.
-const VERSION = "jale-v1";
+const VERSION = "jale-v2";
 const ARCHIVOS = ["/", "/index.html", "/app.css", "/app.js", "/datos.js", "/icon.svg", "/icon-192.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", e => {

@@ -205,7 +205,7 @@ async function estatico(req, res, url) {
   let cuerpo;
   try { cuerpo = await readFile(archivo); } catch { return paginaError(req, res, 404); }
   const ext = path.extname(archivo);
-  enviarArchivo(req, res, 200, archivo, cuerpo, { "cache-control": [".html", ".js", ".webmanifest"].includes(ext) ? "no-cache" : "public, max-age=86400" });
+  enviarArchivo(req, res, 200, archivo, cuerpo, { "cache-control": [".html", ".js", ".css", ".webmanifest"].includes(ext) ? "no-cache" : "public, max-age=86400" });
 }
 
 createServer(async (req, res) => {
