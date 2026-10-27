@@ -15,6 +15,12 @@
     color-scheme: dark;
   }
 }
+:root[data-theme="dark"] {
+  --bg: #0F1513; --surface: #18211E; --ink: #E7EEEB; --muted: #A6B5B0; --line: #33433E;
+  --accent: #43B796; --accent-ink: #06231B; --accent-soft: #173A31;
+  --gold: #E2A646; --gold-soft: #3A2C14; --bad: #EE8676; --bad-soft: #3D1F1A;
+  color-scheme: dark;
+}
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
@@ -101,6 +107,8 @@ a.opcion { text-decoration: none; color: var(--ink); }
 
 footer.pie { border-top: 1px solid var(--line); padding-top: 16px; display: grid; gap: 10px; }
 
+.capa { position: fixed; inset: 0; z-index: 30; background: rgba(0, 0, 0, 0.45); display: grid; place-items: center; padding: 16px; }
+.dialogo { max-width: 440px; width: 100%; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); }
 .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 14px 20px; border-radius: 12px; font-weight: 700; z-index: 20; max-width: calc(100% - 32px); }
 
 /* Currículum: hoja tamaño carta */

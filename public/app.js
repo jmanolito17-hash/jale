@@ -28,8 +28,21 @@ function cargar() {
 function guardar() { try { localStorage.setItem(CLAVE, JSON.stringify(S)); } catch (e) {} }
 cargar();
 
-let IA = false; // ¿el servidor tiene la ayuda con IA configurada?
-fetch("/api/estado").then(r => r.json()).then(d => { IA = !!d.ia; render(); }).catch(() => {});
+// La app corre en dos lugares: en su propio servidor (Render) o como página de claude.ai (visor).
+// En el visor no se puede imprimir, usar el micrófono ni mostrar confirm(); se usan sus capacidades.
+const EN_VISOR = !!window.claude;
+let IA = false;          // el servidor tiene la ayuda con IA configurada (Render)
+let MUESTRA = null;      // en el visor: preguntar a Claude con la cuenta de quien usa la página
+let DESCARGAS = null;    // en el visor: ofrecer archivos para guardar
+if (EN_VISOR && window.claude.use) {
+  window.claude.use("sample").then(s => { if (s) { MUESTRA = s; render(); } }).catch(() => {});
+  window.claude.use("downloads").then(d => { if (d) { DESCARGAS = d; render(); } }).catch(() => {});
+} else {
+  fetch("/api/estado").then(r => r.json()).then(d => { IA = !!d.ia; render(); }).catch(() => {});
+}
+// ¿Hay ayuda con IA para esta tarea? Investigar empresas necesita buscar en internet: solo con el servidor.
+const iaPara = tipo => IA || (!!MUESTRA && tipo !== "empresa");
+const puedeImprimir = !EN_VISOR;
 
 /* ---------- Voz: escuchar y dictar ---------- */
 function hablar(texto, lang = "es-US") {
@@ -44,7 +57,7 @@ function hablar(texto, lang = "es-US") {
 const oir = (texto, lang = "es-US", etiqueta = "🔊 Escuchar") =>
   `<button type="button" class="btn chico oir no-print" data-oir="${esc(texto)}" data-lang="${lang}">${etiqueta}</button>`;
 
-const Reconocer = window.SpeechRecognition || window.webkitSpeechRecognition;
+const Reconocer = EN_VISOR ? null : (window.SpeechRecognition || window.webkitSpeechRecognition);
 const mic = (id, lang = "es-US") => Reconocer ? `<button type="button" class="mic" data-mic="${id}" data-lang="${lang}" aria-label="Hablar en vez de escribir" title="Hablar en vez de escribir">🎤</button>` : "";
 let oyendo = null;
 function dictar(btn) {
@@ -68,7 +81,47 @@ function toast(t) {
   clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 3000);
 }
 
+// Confirmación dentro de la página (confirm() no funciona en todos lados).
+function confirmar(texto, si = "Sí, borrar") {
+  return new Promise(resolver => {
+    const capa = document.createElement("div");
+    capa.className = "capa";
+    capa.innerHTML = `<div class="panel dialogo" role="alertdialog" aria-modal="true" aria-labelledby="dlg-t">
+      <p id="dlg-t" style="font-weight:700">${esc(texto)}</p>
+      <div class="nav-pasos"><button type="button" class="btn" data-r="no">No</button><button type="button" class="btn primary" data-r="si">${esc(si)}</button></div></div>`;
+    const cerrar = v => { capa.remove(); resolver(v); };
+    capa.addEventListener("click", e => { const b = e.target.closest("[data-r]"); if (b) cerrar(b.dataset.r === "si"); else if (e.target === capa) cerrar(false); });
+    capa.addEventListener("keydown", e => { if (e.key === "Escape") cerrar(false); });
+    document.body.appendChild(capa);
+    capa.querySelector("[data-r=no]").focus();
+  });
+}
+
+const MENSAJES_MUESTRA = {
+  not_granted: "No se dio permiso para usar la ayuda de Claude.", sampling_disabled: "La ayuda de Claude no está disponible en esta cuenta.",
+  rate_limited: "Se usó mucho la ayuda. Espere un rato e intente otra vez.", session_expired: "Vuelva a entrar a su cuenta de Claude.",
+  refused: "No se pudo responder eso. Intente escribirlo de otra forma."
+};
+async function iaMuestra(body) {
+  const base = "Ayudas a una persona hispanohablante en Chicago que busca trabajo; sabe hacer bien su oficio pero tiene poca experiencia con computadoras y currículums. Escribe en español sencillo, frases cortas, tratando de usted. No inventes datos.";
+  try {
+    if (body.tipo === "tarea") {
+      const r = await MUESTRA.json(`${base}\n\nConvierte lo que la persona hacía en una línea corta de currículum que empiece con un verbo en pasado. Mantén el significado; no agregues logros que no dijo.\nOficio: ${body.oficio || "no indicado"}\nLo que escribió: """${body.texto}"""\n\nResponde solo con JSON así: {"en": "línea en inglés", "es": "línea en español"}`, { modelTier: "quick" });
+      return { en: String(r?.en || "").slice(0, 200), es: String(r?.es || "").slice(0, 200) };
+    }
+    if (body.tipo === "consejo") {
+      const r = await MUESTRA(`${base} Eres un coach de entrevistas amable para trabajos como limpieza, cocina, almacén, construcción o fábrica. Cada entrevistador pregunta distinto: enseña la idea, no un guion para memorizar.\n\nPregunta de la entrevista: "${body.pregunta}"\nRespuesta de la persona: """${body.respuesta}"""\n\nResponde en texto simple (sin markdown ni asteriscos), máximo 120 palabras, con tres partes:\nLo bueno: ...\nPara mejorar: ...\nUna forma de decirlo: ... (corto, y luego la misma frase en inglés sencillo)`, { cache: false });
+      return { texto: r.text };
+    }
+  } catch (e) {
+    if (["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"].includes(e?.code)) { MUESTRA = null; setTimeout(renderQuieto, 0); }
+    throw new Error(MENSAJES_MUESTRA[e?.code] || "La ayuda no respondió. Intente otra vez.");
+  }
+  throw new Error("Esta ayuda no está disponible aquí.");
+}
+
 async function ia(body) {
+  if (!IA && MUESTRA) return iaMuestra(body);
   let r;
   try { r = await fetch("/api/ia", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }); }
   catch (e) { throw new Error("Sin conexión a internet. Intente otra vez."); }
@@ -247,7 +300,7 @@ function vTrabajo(id) {
           ${propias.map(x => casilla("t-tarea", x[0], esc(x[0]) + (x[1] !== x[0] ? ` <span class="small muted">· ${esc(x[1])}</span>` : ""), true)).join("")}</div>
         <label class="campo" for="t-otra">¿Hacía otra cosa? Escríbala o díctela<div class="con-mic"><input type="text" id="t-otra" maxlength="160">${mic("t-otra")}</div></label>
         <button type="button" class="btn" id="agregar-tarea">➕ Agregar esta tarea</button>
-        ${IA ? "" : `<p class="small muted">Las tareas que usted escriba aparecerán tal como las escribió, también en el currículum en inglés.</p>`}
+        ${iaPara("tarea") ? "" : `<p class="small muted">Las tareas que usted escriba aparecerán tal como las escribió, también en el currículum en inglés.</p>`}
       </div>` : `<div class="note gold">Primero toque el tipo de trabajo para ver las tareas.</div>`}
       <button type="submit" class="btn primary block">✓ Guardar este trabajo</button>
     </form>
@@ -281,8 +334,11 @@ function vResultado() {
         <button type="button" class="opcion" data-idioma="es" aria-pressed="${L === "es"}"><span class="ico" aria-hidden="true">👀</span><span>En español <span class="small muted">· para revisar</span></span></button>
       </div>
       ${viejos ? `<label class="opcion"><input type="checkbox" id="recortar" ${S.recortar ? "checked" : ""}><span>Mostrar solo los últimos 15 años <span class="small muted">· ayuda si le dicen que tiene “demasiada experiencia”</span></span></label>` : ""}
-      <button type="button" class="btn primary block" id="imprimir">🖨️ Imprimir o guardar como PDF</button>
-      <p class="small muted">Al imprimir, puede elegir “Guardar como PDF” para mandarlo por correo o subirlo a una página de trabajo.</p>
+      ${puedeImprimir ? `<button type="button" class="btn primary block" id="imprimir">🖨️ Imprimir o guardar como PDF</button>
+      <p class="small muted">Al imprimir, puede elegir “Guardar como PDF” para mandarlo por correo o subirlo a una página de trabajo.</p>`
+      : DESCARGAS ? `<button type="button" class="btn primary block" id="descargar-cv">⬇️ Descargar para imprimir</button>
+      <p class="small muted">Se guarda un archivo en Descargas. Al abrirlo, sale la ventana para imprimir o guardar como PDF.</p>` : ""}
+      <button type="button" class="btn block" id="copiar-cv">📋 Copiar el texto del currículum</button>
     </div>
     ${cvHTML(L)}
     <div class="panel no-print">
@@ -331,7 +387,7 @@ function vRevisar() {
       <div id="r-enlaces">${enlacesEmpresa()}</div>
       <div class="note small"><b>Consejo:</b> llame al teléfono que <b>usted</b> encontró en el mapa, no al del anuncio, y pregunte si de verdad están contratando para ese puesto.</div>
     </div>
-    ${IA ? `<div class="panel">
+    ${iaPara("empresa") ? `<div class="panel">
       <h3>🤖 Que la computadora investigue por usted</h3>
       <p class="small">Pegue aquí el anuncio (opcional). Se buscará en internet la dirección, el teléfono y señales de alerta.</p>
       <label class="campo" for="r-anuncio">Texto del anuncio<textarea id="r-anuncio" maxlength="6000">${esc(r.anuncio)}</textarea></label>
@@ -400,7 +456,7 @@ function bloquePregunta(q, i) {
     <p lang="en"><b>En inglés:</b> ${esc(q.ej_en)}</p>
     ${oir(q.ej_en, "en-US", "🔊 Oír el ejemplo en inglés")}
     <label class="campo" for="resp-${i}">Su respuesta (para practicar)<div class="con-mic"><textarea id="resp-${i}" data-resp="${i}" maxlength="1500">${esc(S.respuestas[i] || "")}</textarea>${mic("resp-" + i)}</div></label>
-    ${IA ? `<button type="button" class="btn" data-consejo="${i}" ${c.cargando ? "disabled" : ""}>${c.cargando ? "Pensando…" : "🤖 ¿Qué tal mi respuesta?"}</button>
+    ${iaPara("consejo") ? `<button type="button" class="btn" data-consejo="${i}" ${c.cargando ? "disabled" : ""}>${c.cargando ? "Pensando…" : "🤖 ¿Qué tal mi respuesta?"}</button>
       ${c.texto ? `<div class="ia-resp">${esc(c.texto)}</div>` : ""}` : ""}`;
 }
 
@@ -575,7 +631,7 @@ V.addEventListener("click", async e => {
     location.hash = +d.pasoIr < 1 ? "#/" : "#/cv/" + d.pasoIr; return;
   }
   if (d.borrarTrabajo) {
-    if (!confirm("¿Borrar este trabajo de su currículum?")) return;
+    if (!(await confirmar("¿Borrar este trabajo de su currículum?"))) return;
     S.perfil.trabajos = S.perfil.trabajos.filter(t => t.id !== d.borrarTrabajo); guardar(); render(); return;
   }
   if (b.id === "agregar-tarea") {
@@ -583,7 +639,7 @@ V.addEventListener("click", async e => {
     if (!txt) { toast("Escriba o dicte la tarea primero"); campo.focus(); return; }
     leerTrabajo();
     let tarea = [txt, txt];
-    if (IA) {
+    if (iaPara("tarea")) {
       b.disabled = true; b.textContent = "Traduciendo…";
       try { const r = await ia({ tipo: "tarea", texto: txt, oficio: oficio(borrador.oficio)?.es || "" }); tarea = [r.es || txt, r.en || txt]; }
       catch (err) { toast("No se pudo traducir. Se guardará como la escribió."); }
@@ -594,6 +650,27 @@ V.addEventListener("click", async e => {
   if (b.id === "imprimir") {
     const t = document.title; document.title = `Resume - ${S.perfil.nombre || "Empleo Claro"}`;
     window.print(); document.title = t; return;
+  }
+  if (b.id === "descargar-cv") {
+    const nombre = (S.perfil.nombre || "Curriculum").replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "");
+    const doc = `<!doctype html><html lang="${S.idiomaCV}"><head><meta charset="utf-8"><title>${esc(S.perfil.nombre || "Resume")}</title><style>
+      @page { size: letter; margin: 0.6in; } body { margin: 0; background: #fff; }
+      .cv { max-width: 7.5in; margin: 24px auto; color: #111; font-family: "Segoe UI", Arial, sans-serif; font-size: 15px; line-height: 1.4; }
+      .cv h1 { font-size: 26px; margin: 0; } .cv .contacto { color: #333; margin: 4px 0 0; } .cv p { margin: 0; }
+      .cv h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .06em; color: #0D6B57; border-bottom: 1.5px solid #0D6B57; padding-bottom: 3px; margin: 18px 0 8px; }
+      .cv ul { margin: 4px 0 10px; padding-left: 20px; } .cv li { margin: 2px 0; }
+      .cv .trabajo-cab { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+      @media print { .cv { margin: 0; } }
+      </style></head><body>${cvHTML(S.idiomaCV)}<script>addEventListener("load", () => print());<\/script></body></html>`;
+    try { await DESCARGAS.save({ filename: `${nombre}-${S.idiomaCV === "en" ? "Resume" : "Curriculum"}.html`, data: doc }); toast("Listo. Ábralo desde Descargas para imprimir."); }
+    catch (err) { if (err?.code !== "declined") toast("No se pudo descargar aquí. Use “Copiar el texto”."); }
+    return;
+  }
+  if (b.id === "copiar-cv") {
+    const el = $(".cv");
+    try { await navigator.clipboard.writeText(el.innerText); toast("Copiado. Péguelo en Word o en un correo."); }
+    catch (err) { const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast("Texto seleccionado. Cópielo con Ctrl+C."); }
+    return;
   }
   if (b.id === "r-ia") {
     if (!revisar.empresa.trim() && !revisar.anuncio.trim()) { toast("Escriba el nombre de la empresa o pegue el anuncio"); return; }
@@ -615,7 +692,7 @@ V.addEventListener("click", async e => {
     renderQuieto(); return;
   }
   if (d.borrarSol) {
-    if (!confirm("¿Borrar esta solicitud?")) return;
+    if (!(await confirmar("¿Borrar esta solicitud?"))) return;
     S.solicitudes = S.solicitudes.filter(s => s.id !== d.borrarSol); guardar(); location.hash = "#/solicitudes"; return;
   }
 });
@@ -678,11 +755,18 @@ V.addEventListener("submit", e => {
 });
 
 /* ---------- Copia de seguridad y borrar ---------- */
-$("#guardar-copia").addEventListener("click", () => {
+$("#guardar-copia").addEventListener("click", async () => {
+  const archivo = `empleo-claro-${(S.perfil.nombre || "copia").replace(/[^\w]+/g, "-").toLowerCase()}.json`;
+  if (EN_VISOR) {
+    if (!DESCARGAS) { toast("Aquí no se pueden guardar archivos."); return; }
+    try { await DESCARGAS.save({ filename: archivo, data: JSON.stringify(S, null, 2) }); toast("Copia guardada. Guárdela en una memoria USB o mándesela por correo."); }
+    catch (err) { if (err?.code !== "declined") toast("No se pudo guardar la copia aquí."); }
+    return;
+  }
   const blob = new Blob([JSON.stringify(S, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `empleo-claro-${(S.perfil.nombre || "copia").replace(/[^\w]+/g, "-").toLowerCase()}.json`;
+  a.download = archivo;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   toast("Copia guardada en Descargas. Guárdela en una memoria USB o mándesela por correo.");
@@ -696,8 +780,8 @@ $("#abrir-copia").addEventListener("change", async e => {
     toast("Sus datos se abrieron bien"); location.hash = "#/"; render();
   } catch (err) { toast("Ese archivo no es una copia de Empleo Claro"); }
 });
-$("#borrar-todo").addEventListener("click", () => {
-  if (!confirm("¿Borrar todos sus datos de este aparato? Si no guardó una copia, no se pueden recuperar.")) return;
+$("#borrar-todo").addEventListener("click", async () => {
+  if (!(await confirmar("¿Borrar todos sus datos de este aparato? Si no guardó una copia, no se pueden recuperar.", "Sí, borrar todo"))) return;
   try { localStorage.removeItem(CLAVE); } catch (e) {}
   S = nuevo(); revisar.empresa = ""; revisar.anuncio = ""; revisar.resultado = null; revisar.senales = []; consejoIA = {};
   toast("Sus datos se borraron"); location.hash = "#/"; render();
